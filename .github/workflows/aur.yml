@@ -1,0 +1,63 @@
+name: Arch User Repository (AUR)
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Version
+        id: tag_name
+        run: |
+          echo ::set-output name=current_version::${GITHUB_REF#refs/tags/}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Changelog
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.tag_name.outputs.current_version }}
+          path: ./CHANGELOG.md
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: SHA256 Archive
+        id: checksum
+        run: |
+          export CHECKSUM=$(curl -Ls https://codeload.github.com/AndreasBackx/spotifatius/tar.gz/${{ steps.changelog_reader.outputs.version }} | sha256sum | awk '{print $1}')
+          echo "::set-output name=checksum::${CHECKSUM}"
+
+      - name: AUR Version Bump
+        run: |
+          export CHECKSUM=${{ steps.checksum.outputs.checksum }}
+          echo "Bumping version to ${{ steps.changelog_reader.outputs.version }}"
+          echo "Checksum: ${CHECKSUM}"
+          sudo rm -r */src || true
+          sudo git clean -dfx
+          git clone ssh://aur@aur.archlinux.org/spotifatius.git ../aur
+          rm ../aur/* || true
+          cp templates/PKGBUILD ../aur/PKGBUILD
+          cp templates/.SRCINFO ../aur/.SRCINFO
+          cd ../aur
+          sed -i "s@{{PKG_VERSION}}@${{ steps.changelog_reader.outputs.version }}@g" PKGBUILD
+          sed -i "s@{{CHECKSUM}}@${CHECKSUM}@g" PKGBUILD
+          sed -i "s@{{PKG_VERSION}}@${{ steps.changelog_reader.outputs.version }}@g" .SRCINFO
+          sed -i "s@{{CHECKSUM}}@${CHECKSUM}@g" .SRCINFO
+          git config user.name "${{ github.event.head_commit.author.name }}"
+          git config user.email "${{ github.event.head_commit.author.email }}"
+          git add -A
+          git diff-index @ --exit-code --quiet || git commit -m "${{ steps.changelog_reader.outputs.version }}
+
+          ${{ steps.changelog_reader.outputs.changes }}
+
+          https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          git push

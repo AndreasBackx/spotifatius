@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package spotifatius;
+
+service Spotifatius {
+  rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
+  rpc ToggleSaved(ToggleSavedRequest) returns (ToggleSavedResponse);
+}
+
+enum TrackStatus {
+  PLAYING = 0;
+  PAUSED = 1;
+  STOPPED = 2;
+  SAVED = 3;
+  REMOVED = 4;
+}
+
+message Track {
+  optional string id = 1;
+  optional string artist = 2;
+  optional string title = 3;
+  optional string album = 4;
+}
+
+message MonitorRequest {}
+
+message MonitorResponse {
+  Track track = 1;
+  TrackStatus status = 2;
+  optional bool is_saved = 3;
+}
+
+message ToggleSavedRequest {}
+
+message ToggleSavedResponse { bool is_saved = 1; }
