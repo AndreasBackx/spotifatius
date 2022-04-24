@@ -40,10 +40,10 @@ impl DBusClient {
     pub async fn listen(
         &mut self,
         events: mpsc::Sender<ChangeEvent>,
+        update_requests_tx: broadcast::Sender<()>,
+        update_requests_rx: broadcast::Receiver<()>,
     ) -> Result<()> {
         info!("Starting to listen on DBUS...");
-        let (update_requests_tx, update_requests_rx) =
-            broadcast::channel::<()>(10);
         let (change_tx, mut change_rx) = mpsc::channel::<ChangeEvent>(10);
 
         update_requests_tx.send(())?;
@@ -119,7 +119,7 @@ impl DBusClient {
                                     .get("Metadata")
                                     .map(|a| a.into());
 
-                            Some((playback_status, metadata))
+                            Some((playback_status, metadata, false))
                         }
                         None => None,
                     }
@@ -129,6 +129,7 @@ impl DBusClient {
         let player_interface_name =
             InterfaceName::try_from("org.mpris.MediaPlayer2.Player")?;
         let update_requests_stream = update_requests_rx.then(|_| {
+            debug!("Received an update request");
             async {
                 (
                     props
@@ -139,6 +140,7 @@ impl DBusClient {
                         .get(player_interface_name.clone(), "Metadata")
                         .await
                         .ok(),
+                    true,
                 )
             }
         });
@@ -149,7 +151,7 @@ impl DBusClient {
         let mut last_song_change = None;
 
         while let Some(item) = merged_stream.next().await {
-            let (playback_value, metadata_value) = item;
+            let (playback_value, metadata_value, is_update_request) = item;
 
             let status = playback_value
                 .map(|value: OwnedValue| -> Value { value.into() })
@@ -221,7 +223,7 @@ impl DBusClient {
                 },
             };
             if let Some(last) = last_song_change.clone() {
-                if last == song_change {
+                if !is_update_request && last == song_change {
                     continue;
                 }
             }

@@ -10,7 +10,7 @@ use super::api::{
 use super::monitor_client::MonitorClient;
 use anyhow::Result;
 use futures::Stream;
-use tokio::sync;
+use tokio::sync::{self, broadcast};
 
 use tokio::sync::broadcast::Sender;
 use tonic::{Request, Response, Status};
@@ -24,6 +24,7 @@ pub struct MySpotifatius {
     saved_tracker: Arc<sync::Mutex<SavedTracker>>,
     monitor_tx: Sender<MonitorResponse>,
     wake_watcher: Arc<WakeWatcher>,
+    update_requests_tx: broadcast::Sender<()>,
 }
 
 impl MySpotifatius {
@@ -31,11 +32,13 @@ impl MySpotifatius {
         saved_tracker: Arc<sync::Mutex<SavedTracker>>,
         monitor_tx: Sender<MonitorResponse>,
         wake_watcher: Arc<WakeWatcher>,
+        update_requests_tx: broadcast::Sender<()>,
     ) -> Self {
         MySpotifatius {
             saved_tracker,
             monitor_tx,
             wake_watcher,
+            update_requests_tx,
         }
     }
 }
@@ -49,6 +52,9 @@ impl Spotifatius for MySpotifatius {
         _request: Request<MonitorRequest>,
     ) -> Result<Response<Self::MonitorStream>, Status> {
         let rx = self.monitor_tx.subscribe();
+        self.update_requests_tx
+            .send(())
+            .map_err(|err| Status::internal(err.to_string()))?;
 
         Ok(Response::new(Box::pin(MonitorClient {
             rx,

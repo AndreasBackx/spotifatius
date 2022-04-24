@@ -75,17 +75,26 @@ impl Service {
     }
 
     pub async fn monitor(&mut self) -> Result<()> {
+        let (update_requests_tx, update_requests_rx) =
+            broadcast::channel::<()>(10);
         let change_tx = self.change_tx.clone();
-        let mut dbus_handle =
-            tokio::spawn(
-                async move { DBusClient::new().listen(change_tx).await },
-            );
-
         let rpc = MySpotifatius::new(
             self.saved_tracker.clone(),
             self.monitor_tx.clone(),
             self.wake_watcher.clone(),
+            update_requests_tx.clone(),
         );
+
+        let mut dbus_handle = tokio::spawn(async move {
+            DBusClient::new()
+                .listen(
+                    change_tx,
+                    update_requests_tx.clone(),
+                    update_requests_rx,
+                )
+                .await
+        });
+
         let addr = ADDRESS.parse()?;
         let mut rpc_handle = tokio::spawn(async move {
             Server::builder()
