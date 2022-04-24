@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use rspotify::prelude::Id;
 use rspotify::Config;
-use rspotify::{clients::OAuthClient, model::TrackId, scopes, AuthCodeSpotify, Credentials, OAuth};
+use rspotify::{
+    clients::OAuthClient, model::TrackId, scopes, AuthCodeSpotify, Credentials,
+    OAuth,
+};
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, info};
 
@@ -38,8 +41,9 @@ impl SavedTracker {
             scopes: scopes!("user-library-read", "user-library-modify"),
             ..Default::default()
         };
-        let creds = Credentials::from_env()
-            .context("Could not find RSPOTIFY_CLIENT_(ID|SECRET) environment variables")?;
+        let creds = Credentials::from_env().context(
+            "Could not find RSPOTIFY_CLIENT_(ID|SECRET) environment variables",
+        )?;
         let config = Config {
             token_cached: true,
             token_refreshing: true,
@@ -61,7 +65,9 @@ impl SavedTracker {
 
     pub async fn save(&mut self, track_id: String) -> Result<()> {
         self.spotify
-            .current_user_saved_tracks_add([TrackId::from_id(&track_id)?].iter())
+            .current_user_saved_tracks_add(
+                [TrackId::from_id(&track_id)?].iter(),
+            )
             .await?;
         self.tracks.add(track_id, true);
         Ok(())
@@ -69,7 +75,9 @@ impl SavedTracker {
 
     pub async fn remove(&mut self, track_id: String) -> Result<()> {
         self.spotify
-            .current_user_saved_tracks_delete([TrackId::from_id(&track_id)?].iter())
+            .current_user_saved_tracks_delete(
+                [TrackId::from_id(&track_id)?].iter(),
+            )
             .await?;
         self.tracks.add(track_id, false);
         Ok(())
@@ -79,7 +87,11 @@ impl SavedTracker {
         self.tracks.is_saved(track_id)
     }
 
-    pub async fn check_saved(&mut self, track_id: String, force_refresh: bool) -> Result<bool> {
+    pub async fn check_saved(
+        &mut self,
+        track_id: String,
+        force_refresh: bool,
+    ) -> Result<bool> {
         if !force_refresh {
             if let Some(saved) = self.is_saved_cached(&track_id) {
                 debug!("{} is cached: {}.", track_id, saved);
@@ -88,7 +100,9 @@ impl SavedTracker {
         }
         let saved = self
             .spotify
-            .current_user_saved_tracks_contains([TrackId::from_id(&track_id)?].iter())
+            .current_user_saved_tracks_contains(
+                [TrackId::from_id(&track_id)?].iter(),
+            )
             .await
             .map(|saved| saved[0])?;
         debug!("{} is saved: {}", track_id, saved);

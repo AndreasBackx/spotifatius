@@ -37,17 +37,22 @@ impl DBusClient {
     }
 
     /// Listen for song changes, mirroring what you would see playing in Spotify.
-    pub async fn listen(&mut self, events: mpsc::Sender<ChangeEvent>) -> Result<()> {
+    pub async fn listen(
+        &mut self,
+        events: mpsc::Sender<ChangeEvent>,
+    ) -> Result<()> {
         info!("Starting to listen on DBUS...");
-        let (update_requests_tx, update_requests_rx) = broadcast::channel::<()>(10);
+        let (update_requests_tx, update_requests_rx) =
+            broadcast::channel::<()>(10);
         let (change_tx, mut change_rx) = mpsc::channel::<ChangeEvent>(10);
 
         update_requests_tx.send(())?;
         self.update_requests = Some(update_requests_tx.clone());
         let upd = update_requests_tx;
 
-        let mut window_handle =
-            tokio::spawn(DBusClient::listen_spotify_window(change_tx.clone(), upd));
+        let mut window_handle = tokio::spawn(
+            DBusClient::listen_spotify_window(change_tx.clone(), upd),
+        );
 
         let mut change_handle = tokio::spawn(DBusClient::listen_song_changes(
             events.clone(),
@@ -95,41 +100,51 @@ impl DBusClient {
             .build()
             .await?;
 
-        let props_changed_stream =
-            props
-                .receive_properties_changed()
-                .await?
-                .filter_map(|signal| async move {
+        let props_changed_stream = props
+            .receive_properties_changed()
+            .await?
+            .filter_map(|signal| {
+                async move {
                     match signal.args().ok() {
                         Some(args) => {
-                            let changed_properties = args.changed_properties().clone().to_owned();
+                            let changed_properties =
+                                args.changed_properties().clone().to_owned();
 
                             let playback_status: Option<OwnedValue> =
-                                changed_properties.get("PlaybackStatus").map(|a| a.into());
+                                changed_properties
+                                    .get("PlaybackStatus")
+                                    .map(|a| a.into());
                             let metadata: Option<OwnedValue> =
-                                changed_properties.get("Metadata").map(|a| a.into());
+                                changed_properties
+                                    .get("Metadata")
+                                    .map(|a| a.into());
 
                             Some((playback_status, metadata))
                         }
                         None => None,
                     }
-                });
+                }
+            });
 
-        let player_interface_name = InterfaceName::try_from("org.mpris.MediaPlayer2.Player")?;
-        let update_requests_stream = update_requests_rx.then(|_| async {
-            (
-                props
-                    .get(player_interface_name.clone(), "PlaybackStatus")
-                    .await
-                    .ok(),
-                props
-                    .get(player_interface_name.clone(), "Metadata")
-                    .await
-                    .ok(),
-            )
+        let player_interface_name =
+            InterfaceName::try_from("org.mpris.MediaPlayer2.Player")?;
+        let update_requests_stream = update_requests_rx.then(|_| {
+            async {
+                (
+                    props
+                        .get(player_interface_name.clone(), "PlaybackStatus")
+                        .await
+                        .ok(),
+                    props
+                        .get(player_interface_name.clone(), "Metadata")
+                        .await
+                        .ok(),
+                )
+            }
         });
 
-        let mut merged_stream = Box::pin(select(update_requests_stream, props_changed_stream));
+        let mut merged_stream =
+            Box::pin(select(update_requests_stream, props_changed_stream));
 
         let mut last_song_change = None;
 
@@ -145,7 +160,9 @@ impl DBusClient {
             let metadata = metadata_value
                 .map(|value: OwnedValue| -> Value { value.into() })
                 .and_then(|value| value.clone().downcast::<Dict>())
-                .and_then(|value| -> Option<HashMap<String, Value>> { value.try_into().ok() });
+                .and_then(|value| -> Option<HashMap<String, Value>> {
+                    value.try_into().ok()
+                });
 
             let artist = metadata
                 .as_ref()
@@ -227,7 +244,8 @@ impl DBusClient {
             .path(FREEDESKTOP_PATH)?
             .build()
             .await?;
-        let mut name_owner_changed_stream = dbus.receive_name_owner_changed().await?;
+        let mut name_owner_changed_stream =
+            dbus.receive_name_owner_changed().await?;
         while let Some(signal) = name_owner_changed_stream.next().await {
             let args = signal.args()?;
 
