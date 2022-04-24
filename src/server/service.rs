@@ -74,9 +74,10 @@ impl Service {
         Ok(())
     }
 
-    pub async fn monitor(&mut self) -> Result<()> {
-        let (update_requests_tx, update_requests_rx) =
-            broadcast::channel::<()>(10);
+    pub async fn monitor(
+        &mut self,
+        update_requests_tx: broadcast::Sender<()>,
+    ) -> Result<()> {
         let change_tx = self.change_tx.clone();
         let rpc = MySpotifatius::new(
             self.saved_tracker.clone(),
@@ -87,11 +88,7 @@ impl Service {
 
         let mut dbus_handle = tokio::spawn(async move {
             DBusClient::new()
-                .listen(
-                    change_tx,
-                    update_requests_tx.clone(),
-                    update_requests_rx,
-                )
+                .listen(change_tx, update_requests_tx.clone())
                 .await
         });
 
@@ -124,6 +121,7 @@ impl Service {
                                     let is_saved = tracker.check_saved(track_id.clone(), false).await?;
 
                                     if is_saved {
+                                        debug!("New monitor response because is_saved went from unknown to true");
                                         self.send_and_wake( MonitorResponse {
                                             track:Some( Track { id: Some(track_id), artist: track_change.track.artist, title: track_change.track.title, album: track_change.track.album }),
                                             status: track_change.status.into(),

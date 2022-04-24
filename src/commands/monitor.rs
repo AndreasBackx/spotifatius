@@ -29,16 +29,20 @@ pub struct Monitor {
 }
 
 pub async fn run(opts: Monitor) -> Result<()> {
+    let (update_requests_tx, _) = broadcast::channel::<()>(1);
     let (monitor_tx, mut monitor_rx) =
         broadcast::channel::<MonitorResponse>(100);
     let mut service = Service::new(monitor_tx).await?;
 
-    let mut monitor_handle =
-        tokio::spawn(async move { service.monitor().await });
+    let service_update_requests_tx = update_requests_tx.clone();
+    let mut monitor_handle = tokio::spawn(async move {
+        service.monitor(service_update_requests_tx).await
+    });
 
-    let mut interval = time::interval(Duration::from_secs(3600));
-    let mut last_output = Output::default();
-
+    let mut interval = time::interval_at(
+        Instant::now() + Duration::from_secs(3600),
+        Duration::from_secs(3600),
+    );
     loop {
         select! {
             monitor_result = &mut monitor_handle => {
@@ -46,7 +50,8 @@ pub async fn run(opts: Monitor) -> Result<()> {
                 break;
             }
             _ = interval.tick() => {
-                last_output.print(opts.output_type)?;
+                debug!("Interval has passed, updating!");
+                update_requests_tx.send(())?;
             }
             Ok(response) = monitor_rx.recv() => {
                 debug!("{:#?}", response);
@@ -69,12 +74,11 @@ pub async fn run(opts: Monitor) -> Result<()> {
                         (None, Some(title)) => title,
                         (None, None) => "".to_string(),
                     };
-                    last_output = Output {
+                    Output {
                         text,
                         tooltip: track.album,
                         class: Some(class),
-                    };
-                    last_output.clone()
+                    }
                 } else if status == TrackStatus::Saved {
                     interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                     Output {

@@ -41,9 +41,9 @@ impl DBusClient {
         &mut self,
         events: mpsc::Sender<ChangeEvent>,
         update_requests_tx: broadcast::Sender<()>,
-        update_requests_rx: broadcast::Receiver<()>,
     ) -> Result<()> {
         info!("Starting to listen on DBUS...");
+        let update_requests_rx = update_requests_tx.subscribe();
         let (change_tx, mut change_rx) = mpsc::channel::<ChangeEvent>(10);
 
         update_requests_tx.send(())?;
