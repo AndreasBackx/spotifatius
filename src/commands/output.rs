@@ -51,21 +51,6 @@ impl OutputFormatter {
     }
 }
 
-// impl Output {
-//     pub fn print(&self, output_type: OutputType, config: Config) -> Result<()> {
-//         match output_type {
-//             OutputType::Waybar => {
-//                 let json = serde_json::to_string(&self)?;
-//                 println!("{}", json);
-//             }
-//             OutputType::Polybar => {
-//                 println!("{}", self.text);
-//             }
-//         }
-//         Ok(())
-//     }
-// }
-
 impl Default for Output {
     fn default() -> Self {
         Output {

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.2] - 2022-04-25
 ### Added
-- Added config, by default and optional at `~/.config/spotifatius/config.toml`. can be changed by passing `--config` to `monitor`.
+- Added config, by default and optional at `~/.config/spotifatius/config.toml`. Can be changed by passing `--config` to `monitor`.
 - Monitoring supports coloured formatting for polybar with config.
 
 ### Changed
