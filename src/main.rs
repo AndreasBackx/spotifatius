@@ -12,9 +12,9 @@ use commands::{monitor, toggle_saved};
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
-    let opts: Opts = Opts::parse();
+    let root_opts = Opts::parse();
 
-    match opts.subcmd {
+    match root_opts.subcmd {
         SubCommand::Monitor(opts) => monitor::run(opts).await,
         SubCommand::ToggleSaved(opts) => toggle_saved::run(opts).await,
     }

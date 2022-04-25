@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use tokio::{
     select,
@@ -14,7 +14,10 @@ use crate::{
     commands::output::{Output, OutputType},
     server::grpc::api::{MonitorResponse, TrackStatus},
     server::service::Service,
+    shared::config::get_config,
 };
+
+use super::output::OutputFormatter;
 
 /// Monitor the status of the currently playing song on Spotify.
 ///
@@ -23,12 +26,26 @@ use crate::{
 /// by other commands.
 #[derive(Parser)]
 pub struct Monitor {
+    /// Config file path.
+    #[clap(
+        short,
+        long,
+        parse(from_os_str),
+        default_value = "~/.config/spotifatius/config.toml"
+    )]
+    pub config: PathBuf,
     /// Output type.
     #[clap(arg_enum, short, long, default_value = "waybar")]
     output_type: OutputType,
 }
 
 pub async fn run(opts: Monitor) -> Result<()> {
+    let config = get_config(opts.config)?;
+    let formatter = OutputFormatter {
+        output_type: opts.output_type,
+        config,
+    };
+
     let (update_requests_tx, _) = broadcast::channel::<()>(1);
     let (monitor_tx, mut monitor_rx) =
         broadcast::channel::<MonitorResponse>(100);
@@ -100,7 +117,7 @@ pub async fn run(opts: Monitor) -> Result<()> {
                         class: None,
                     }
                 };
-                output.print(opts.output_type)?;
+                formatter.print(output)?;
             }
         }
     }
