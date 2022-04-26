@@ -4,6 +4,9 @@ use anyhow::{Context, Error, Result};
 use serde::Deserialize;
 use tracing::{debug, warn};
 
+pub const DEFAULT_CONFIG_FOLDER: &str = "~/.config/spotifatius";
+pub const DEFAULT_CONFIG_PATH: &str = "~/.config/spotifatius/config.toml";
+
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct Config {
     #[serde(default = "default_polybar_config")]
@@ -22,24 +25,25 @@ fn default_polybar_config() -> PolybarConfig {
     }
 }
 
-pub fn get_config(config_path: PathBuf) -> Result<Config> {
-    let path = if config_path.starts_with("~/") {
+pub fn resolve_home_path(path: PathBuf) -> Result<PathBuf> {
+    if path.starts_with("~/") {
         let home_path = env::var_os("HOME")
             .context("could not find the $HOME env var to use for the default config path")?;
-        let relative_path = config_path
+        let relative_path = path
             .to_str()
             .with_context(|| {
-                format!(
-                    "invalid config path specified: {}",
-                    config_path.display()
-                )
+                format!("invalid path specified: {}", path.display())
             })?
             .to_string()
             .split_off(2);
-        PathBuf::from(home_path).join(relative_path)
+        Ok(PathBuf::from(home_path).join(relative_path))
     } else {
-        config_path
-    };
+        Ok(path)
+    }
+}
+
+pub fn get_config(config_path: PathBuf) -> Result<Config> {
+    let path = resolve_home_path(config_path)?;
     debug!("Using config: {}", path.display());
 
     let config_file = File::open(path.clone())

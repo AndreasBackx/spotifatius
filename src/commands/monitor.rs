@@ -14,7 +14,7 @@ use crate::{
     commands::output::{Output, OutputType},
     server::grpc::api::{MonitorResponse, TrackStatus},
     server::service::Service,
-    shared::config::get_config,
+    shared::config::{get_config, DEFAULT_CONFIG_PATH},
 };
 
 use super::output::OutputFormatter;
@@ -31,7 +31,7 @@ pub struct Monitor {
         short,
         long,
         parse(from_os_str),
-        default_value = "~/.config/spotifatius/config.toml"
+        default_value = DEFAULT_CONFIG_PATH
     )]
     pub config: PathBuf,
     /// Output type.
