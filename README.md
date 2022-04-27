@@ -55,7 +55,7 @@ Add the following to make it available as a module:
 "custom/spotify": {
     "format": "{}",
     "return-type": "json",
-    "on-click-right": "spotifatius toggle-saved",
+    "on-click-right": "spotifatius toggle-liked",
     "exec": "spotifatius monitor"
 }
 ```
