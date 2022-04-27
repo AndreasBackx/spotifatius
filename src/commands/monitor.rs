@@ -78,8 +78,8 @@ pub async fn run(opts: Monitor) -> Result<()> {
 
                     let mut class = vec![];
                     let mut separator = "-";
-                    if response.is_saved.unwrap_or_default() {
-                        class.push("saved".to_string());
+                    if response.is_liked.unwrap_or_default() {
+                        class.push("liked".to_string());
                         separator = "+";
                     }
                     class.push(status.into());
@@ -96,19 +96,19 @@ pub async fn run(opts: Monitor) -> Result<()> {
                         tooltip: track.album,
                         class: Some(class),
                     }
-                } else if status == TrackStatus::Saved {
+                } else if status == TrackStatus::Added {
                     interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                     Output {
-                        text: "Saved to library!".to_string(),
+                        text: "Added to library!".to_string(),
                         tooltip: None,
-                        class: None,
+                        class: Some(vec![status.into()]),
                     }
                 } else if status == TrackStatus::Removed {
                     interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                     Output {
                         text: "Removed from library!".to_string(),
                         tooltip: None,
-                        class: None,
+                        class: Some(vec![status.into()]),
                     }
                 } else {
                     Output {

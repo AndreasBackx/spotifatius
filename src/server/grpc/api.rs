@@ -11,7 +11,7 @@ pub enum ChangeEvent {
     SpotifyOpened,
     SpotifyClosed,
     TrackChange(TrackChange),
-    TrackSaved(bool),
+    TrackLiked(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +28,7 @@ impl FromStr for TrackStatus {
             "playing" => Ok(TrackStatus::Playing),
             "stopped" => Ok(TrackStatus::Stopped),
             "paused" => Ok(TrackStatus::Paused),
-            "saved" => Ok(TrackStatus::Saved),
+            "added" => Ok(TrackStatus::Added),
             "removed" => Ok(TrackStatus::Removed),
             _ => bail!(s.to_string()),
         }
@@ -41,7 +41,7 @@ impl From<TrackStatus> for String {
             TrackStatus::Playing => "playing",
             TrackStatus::Stopped => "stopped",
             TrackStatus::Paused => "paused",
-            TrackStatus::Saved => "saved",
+            TrackStatus::Added => "added",
             TrackStatus::Removed => "removed",
         }
         .to_string()

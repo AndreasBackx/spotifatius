@@ -1,22 +1,22 @@
 use anyhow::Result;
 
 use crate::server::grpc::api::{
-    spotifatius_client::SpotifatiusClient, ToggleSavedRequest,
+    spotifatius_client::SpotifatiusClient, ToggleLikedRequest,
 };
 use crate::shared::consts::ADDRESS;
 
 pub struct Service {}
 
 impl Service {
-    pub async fn toggle_saved() -> Result<()> {
+    pub async fn toggle_liked() -> Result<()> {
         let mut client =
             SpotifatiusClient::connect(format!("http://{ADDRESS}")).await?;
-        let request = tonic::Request::new(ToggleSavedRequest {});
-        let response = client.toggle_saved(request).await?;
+        let request = tonic::Request::new(ToggleLikedRequest {});
+        let response = client.toggle_liked(request).await?;
         println!(
             "{}",
-            if response.get_ref().is_saved {
-                "Saved to library!"
+            if response.get_ref().is_liked {
+                "Added to library!"
             } else {
                 "Removed from library!"
             }

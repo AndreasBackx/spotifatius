@@ -1,11 +1,11 @@
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::server::saved_tracker::SavedTracker;
+use crate::server::liked_tracker::LikedTracker;
 
 use super::api::spotifatius_server::Spotifatius;
 use super::api::{
-    MonitorRequest, MonitorResponse, ToggleSavedRequest, ToggleSavedResponse,
+    MonitorRequest, MonitorResponse, ToggleLikedRequest, ToggleLikedResponse,
 };
 use super::monitor_client::MonitorClient;
 use anyhow::Result;
@@ -21,7 +21,7 @@ type ResponseStream =
     Pin<Box<dyn Stream<Item = Result<MonitorResponse, Status>> + Send + Sync>>;
 
 pub struct MySpotifatius {
-    saved_tracker: Arc<sync::Mutex<SavedTracker>>,
+    liked_tracker: Arc<sync::Mutex<LikedTracker>>,
     monitor_tx: Sender<MonitorResponse>,
     wake_watcher: Arc<WakeWatcher>,
     update_requests_tx: broadcast::Sender<()>,
@@ -29,13 +29,13 @@ pub struct MySpotifatius {
 
 impl MySpotifatius {
     pub fn new(
-        saved_tracker: Arc<sync::Mutex<SavedTracker>>,
+        liked_tracker: Arc<sync::Mutex<LikedTracker>>,
         monitor_tx: Sender<MonitorResponse>,
         wake_watcher: Arc<WakeWatcher>,
         update_requests_tx: broadcast::Sender<()>,
     ) -> Self {
         MySpotifatius {
-            saved_tracker,
+            liked_tracker,
             monitor_tx,
             wake_watcher,
             update_requests_tx,
@@ -62,17 +62,17 @@ impl Spotifatius for MySpotifatius {
         }) as Self::MonitorStream))
     }
 
-    async fn toggle_saved(
+    async fn toggle_liked(
         &self,
-        _request: Request<ToggleSavedRequest>,
-    ) -> Result<Response<ToggleSavedResponse>, Status> {
-        let is_saved = self
-            .saved_tracker
+        _request: Request<ToggleLikedRequest>,
+    ) -> Result<Response<ToggleLikedResponse>, Status> {
+        let is_liked = self
+            .liked_tracker
             .lock()
             .await
-            .toggle_saved(None, false)
+            .toggle_liked(None, false)
             .await
             .map_err(|err| Status::internal(err.to_string()))?;
-        Ok(Response::new(ToggleSavedResponse { is_saved }))
+        Ok(Response::new(ToggleLikedResponse { is_liked }))
     }
 }

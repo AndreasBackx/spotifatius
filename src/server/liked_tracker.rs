@@ -12,7 +12,7 @@ use crate::shared::config::{resolve_home_path, DEFAULT_CONFIG_FOLDER};
 
 use super::grpc::api::ChangeEvent;
 
-pub struct SavedTracker {
+pub struct LikedTracker {
     spotify: AuthCodeSpotify,
     tracks: Tracks,
     pub current_track_id: Option<String>,
@@ -21,20 +21,20 @@ pub struct SavedTracker {
 
 #[derive(Default)]
 struct Tracks {
-    saved: HashMap<String, bool>,
+    liked: HashMap<String, bool>,
 }
 
 impl Tracks {
-    fn is_saved(&self, track: &String) -> Option<bool> {
-        self.saved.get(track).map(|b| b.to_owned())
+    fn is_liked(&self, track: &String) -> Option<bool> {
+        self.liked.get(track).map(|b| b.to_owned())
     }
 
-    fn add(&mut self, track: String, saved: bool) -> Option<bool> {
-        self.saved.insert(track, saved)
+    fn add(&mut self, track: String, liked: bool) -> Option<bool> {
+        self.liked.insert(track, liked)
     }
 }
 
-impl SavedTracker {
+impl LikedTracker {
     pub async fn new(change_tx: Sender<ChangeEvent>) -> Result<Self> {
         let oauth = OAuth {
             redirect_uri: "http://localhost".to_string(),
@@ -62,7 +62,7 @@ impl SavedTracker {
         let url = spotify.get_authorize_url(true)?;
         spotify.prompt_for_token(&url).await?; // This is where it crashes.
 
-        Ok(SavedTracker {
+        Ok(LikedTracker {
             spotify,
             tracks: Tracks::default(),
             current_track_id: None,
@@ -90,35 +90,35 @@ impl SavedTracker {
         Ok(())
     }
 
-    pub fn is_saved_cached(&self, track_id: &String) -> Option<bool> {
-        self.tracks.is_saved(track_id)
+    pub fn is_liked_cached(&self, track_id: &String) -> Option<bool> {
+        self.tracks.is_liked(track_id)
     }
 
-    pub async fn check_saved(
+    pub async fn check_liked(
         &mut self,
         track_id: String,
         force_refresh: bool,
     ) -> Result<bool> {
         if !force_refresh {
-            if let Some(saved) = self.is_saved_cached(&track_id) {
-                debug!("{} is cached: {}.", track_id, saved);
-                return Ok(saved);
+            if let Some(liked) = self.is_liked_cached(&track_id) {
+                debug!("{} is cached: {}.", track_id, liked);
+                return Ok(liked);
             }
         }
-        let saved = self
+        let liked = self
             .spotify
             .current_user_saved_tracks_contains(
                 [TrackId::from_id(&track_id)?].iter(),
             )
             .await
-            .map(|saved| saved[0])?;
-        debug!("{} is saved: {}", track_id, saved);
+            .map(|liked| liked[0])?;
+        debug!("{} is liked: {}", track_id, liked);
 
-        self.tracks.add(track_id, saved);
-        Ok(saved)
+        self.tracks.add(track_id, liked);
+        Ok(liked)
     }
 
-    pub async fn toggle_saved(
+    pub async fn toggle_liked(
         &mut self,
         track_id_or_current: Option<String>,
         force_refresh: bool,
@@ -126,15 +126,15 @@ impl SavedTracker {
         let track_id = track_id_or_current
             .or_else(|| self.current_track_id.clone())
             .context("no current track playing")?;
-        if !self.check_saved(track_id.clone(), force_refresh).await? {
+        if !self.check_liked(track_id.clone(), force_refresh).await? {
             info!("Saving");
             self.save(track_id).await?;
-            self.change_tx.send(ChangeEvent::TrackSaved(true)).await?;
+            self.change_tx.send(ChangeEvent::TrackLiked(true)).await?;
             Ok(true)
         } else {
             info!("Removing");
             self.remove(track_id).await?;
-            self.change_tx.send(ChangeEvent::TrackSaved(false)).await?;
+            self.change_tx.send(ChangeEvent::TrackLiked(false)).await?;
             Ok(false)
         }
     }

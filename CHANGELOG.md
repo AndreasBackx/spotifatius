@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `added` and `removed` classes for when adding and removing songs from liked songs.
+
 ### Changed
 - Fixed hardcoded location for rspotify cache.
+- Changed naming from `saved` to `liked` to avoid confusion with the fact that something can be saved/added to your liked songs. Liked songs is not what the API uses, but it's what the GUI uses. This is reflected in both the code, the now `toggle-liked` command, and class output.
 
 ## [0.1.2] - 2022-04-25
 ### Added

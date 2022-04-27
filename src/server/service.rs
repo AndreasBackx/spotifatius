@@ -20,7 +20,7 @@ use crate::server::{
         spotifatius_server::SpotifatiusServer, MonitorRequest, MonitorResponse,
         Track, TrackStatus,
     },
-    saved_tracker::SavedTracker,
+    liked_tracker::LikedTracker,
 };
 
 use super::grpc::api::ChangeEvent;
@@ -30,7 +30,7 @@ use crate::shared::consts::ADDRESS;
 
 pub struct Service {
     monitor_tx: broadcast::Sender<MonitorResponse>,
-    saved_tracker: Arc<Mutex<SavedTracker>>,
+    liked_tracker: Arc<Mutex<LikedTracker>>,
     change_tx: mpsc::Sender<ChangeEvent>,
     change_rx: mpsc::Receiver<ChangeEvent>,
     wake_watcher: Arc<WakeWatcher>,
@@ -42,13 +42,13 @@ impl Service {
     ) -> Result<Self> {
         let (change_tx, change_rx) = mpsc::channel::<ChangeEvent>(100);
 
-        let saved_tracker =
-            Arc::new(Mutex::new(SavedTracker::new(change_tx.clone()).await?));
+        let liked_tracker =
+            Arc::new(Mutex::new(LikedTracker::new(change_tx.clone()).await?));
         let wake_watcher = Arc::new(WakeWatcher::new());
 
         Ok(Service {
             monitor_tx,
-            saved_tracker,
+            liked_tracker,
             change_tx,
             change_rx,
             wake_watcher,
@@ -80,7 +80,7 @@ impl Service {
     ) -> Result<()> {
         let change_tx = self.change_tx.clone();
         let rpc = MySpotifatius::new(
-            self.saved_tracker.clone(),
+            self.liked_tracker.clone(),
             self.monitor_tx.clone(),
             self.wake_watcher.clone(),
             update_requests_tx.clone(),
@@ -104,28 +104,28 @@ impl Service {
             tokio::select! {
                 Some(change_event) = self.change_rx.recv() => {
                     debug!("{:#?}", change_event);
-                    let mut tracker = self.saved_tracker.lock().await;
+                    let mut tracker = self.liked_tracker.lock().await;
                     match change_event {
                         ChangeEvent::TrackChange(track_change) => {
                             tracker.current_track_id = track_change.track.id.clone();
                             if let Some(track_id) = track_change.track.id {
-                                let is_cached_saved = tracker.is_saved_cached(&track_id);
+                                let is_cached_liked = tracker.is_liked_cached(&track_id);
                                 self.send_and_wake(MonitorResponse {
                                     track:Some( Track { id: Some(track_id.clone()), artist: track_change.track.artist.clone(), title: track_change.track.title.clone(), album: track_change.track.album.clone() }),
                                     status: track_change.status.into(),
-                                    is_saved: is_cached_saved,
+                                    is_liked: is_cached_liked,
                                 })?;
 
-                                if is_cached_saved.is_none() {
+                                if is_cached_liked.is_none() {
                                     debug!("Save status wasn't cached yet, caching it now!");
-                                    let is_saved = tracker.check_saved(track_id.clone(), false).await?;
+                                    let is_liked = tracker.check_liked(track_id.clone(), false).await?;
 
-                                    if is_saved {
-                                        debug!("New monitor response because is_saved went from unknown to true");
+                                    if is_liked {
+                                        debug!("New monitor response because is_liked went from unknown to true");
                                         self.send_and_wake( MonitorResponse {
                                             track:Some( Track { id: Some(track_id), artist: track_change.track.artist, title: track_change.track.title, album: track_change.track.album }),
                                             status: track_change.status.into(),
-                                            is_saved: Some(is_saved),
+                                            is_liked: Some(is_liked),
                                         })?;
                                     }
                                 }
@@ -133,7 +133,7 @@ impl Service {
                                 self.send_and_wake( MonitorResponse {
                                     track: None,
                                     status: TrackStatus::Stopped.into(),
-                                    is_saved: None,
+                                    is_liked: None,
                                 })?;
                             };
                         }
@@ -143,14 +143,14 @@ impl Service {
                             self.send_and_wake( MonitorResponse {
                                 track: None,
                                 status: TrackStatus::Stopped.into(),
-                                is_saved: None,
+                                is_liked: None,
                             })?;
                         }
-                        ChangeEvent::TrackSaved(is_saved) => {
+                        ChangeEvent::TrackLiked(is_liked) => {
                             self.send_and_wake( MonitorResponse {
                                 track: None,
-                                status: if is_saved {TrackStatus::Saved} else {TrackStatus::Removed}.into(),
-                                is_saved: Some(is_saved),
+                                status: if is_liked {TrackStatus::Added} else {TrackStatus::Removed}.into(),
+                                is_liked: Some(is_liked),
                             })?;
                         }
                     }

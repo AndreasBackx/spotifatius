@@ -7,7 +7,7 @@ use crate::commands::opts::{Opts, SubCommand};
 use anyhow::Result;
 
 use clap::Parser;
-use commands::{monitor, toggle_saved};
+use commands::{monitor, toggle_liked};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -16,6 +16,6 @@ async fn main() -> Result<()> {
 
     match root_opts.subcmd {
         SubCommand::Monitor(opts) => monitor::run(opts).await,
-        SubCommand::ToggleSaved(opts) => toggle_saved::run(opts).await,
+        SubCommand::ToggleLiked(opts) => toggle_liked::run(opts).await,
     }
 }

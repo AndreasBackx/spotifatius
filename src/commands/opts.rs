@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use super::{monitor::Monitor, toggle_saved::ToggleSaved};
+use super::{monitor::Monitor, toggle_liked::ToggleLiked};
 
 /// A simple Spotify CLI primarily made for monitoring what songs you're
 /// listening to and displaying that in your bar of choice like waybar or polybar.
@@ -14,5 +14,5 @@ pub struct Opts {
 #[derive(Subcommand)]
 pub enum SubCommand {
     Monitor(Monitor),
-    ToggleSaved(ToggleSaved),
+    ToggleLiked(ToggleLiked),
 }
