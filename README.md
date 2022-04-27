@@ -6,7 +6,7 @@ A simple Spotify CLI primarily made for monitoring what songs you're listening t
 
 ## Usage
 
-You add `spotifatius monitor` to a custom module in waybar or polybar. Though you want to run it once from your terminal to setup Spotify access tokens.
+You likely want to add `spotifatius monitor` to your favourite bar, see [Bar Integration](#bar-integration). Though you want to run it once from your terminal to setup Spotify access tokens.
 
 ```shell
 $ spotifatius monitor
@@ -16,7 +16,7 @@ Please enter the URL you were redirected to:
 {"text":"Twenty One Pilots - Bounce Man","tooltip":"Scaled And Icy","class":["playing"]}
 ```
 
-From then on you can run it from your favourite bar, see [Bar Integration](#bar-integration). To toggle the liked state anywhere, use `toggle-liked`.
+From then on, this step will no longer be required. To toggle the liked state anywhere, use `toggle-liked`.
 
 ```shell
 $ spotifatius toggle-liked
@@ -26,6 +26,7 @@ Added to library!
 That will update the monitoring server/client:
 
 ```shell
+{"text":"Added to library!","class":["added"]}
 {"text":"Twenty One Pilots + Bounce Man","tooltip":"Scaled And Icy","class":["liked","playing"]}
 ```
 
@@ -37,6 +38,7 @@ Removed from library!
 ```
 
 ```shell
+{"text":"Removed from library!","class":["removed"]}
 {"text":"Twenty One Pilots - Bounce Man","tooltip":"Scaled And Icy","class":["playing"]}
 ```
 
