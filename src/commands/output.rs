@@ -44,7 +44,7 @@ impl OutputFormatter {
                             .map(|color| color.to_owned())
                     })
                     .unwrap_or_default();
-                println!("%{{F{color}}}{}{{%F-}}", output.text);
+                println!("%{{F{color}}}{}%{{F-}}", output.text);
             }
         }
         Ok(())
