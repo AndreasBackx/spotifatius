@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2022-04-29
 ### Changed
 - The logic for showing the status after adding/removing has been moved to the server. This additionally fixes the bug where the client closed when a song was added/removed due to requesting an update when there was no one listening for updates as that's only for the server.
 
