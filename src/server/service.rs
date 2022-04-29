@@ -2,12 +2,13 @@ use std::error::Error;
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use tokio;
 use tokio::sync::Mutex;
 use tokio::sync::{
     broadcast,
     mpsc::{self},
 };
+use tokio::time::Instant;
+use tokio::{self, time};
 use tokio_stream::StreamExt;
 use tonic::transport::Server;
 use tracing::debug;
@@ -68,16 +69,16 @@ impl Service {
         let mut stream = client.monitor(request).await?.into_inner();
 
         while let Some(item) = stream.next().await {
-            self.monitor_tx.send(item?)?;
+            self.monitor_tx
+                .send(item?)
+                .context("Could not forward gRPC stream")?;
         }
 
         Ok(())
     }
 
-    pub async fn monitor(
-        &mut self,
-        update_requests_tx: broadcast::Sender<()>,
-    ) -> Result<()> {
+    pub async fn monitor(&mut self) -> Result<()> {
+        let (update_requests_tx, _) = broadcast::channel::<()>(1);
         let change_tx = self.change_tx.clone();
         let rpc = MySpotifatius::new(
             self.liked_tracker.clone(),
@@ -86,11 +87,8 @@ impl Service {
             update_requests_tx.clone(),
         );
 
-        let mut dbus_handle = tokio::spawn(async move {
-            DBusClient::new()
-                .listen(change_tx, update_requests_tx.clone())
-                .await
-        });
+        let mut dbus = DBusClient::new(change_tx, update_requests_tx.clone());
+        let mut dbus_handle = tokio::spawn(async move { dbus.listen().await });
 
         let addr = ADDRESS.parse()?;
         let mut rpc_handle = tokio::spawn(async move {
@@ -99,6 +97,11 @@ impl Service {
                 .serve(addr)
                 .await
         });
+
+        let mut interval = time::interval_at(
+            Instant::now() + Duration::from_secs(3600),
+            Duration::from_secs(3600),
+        );
 
         loop {
             tokio::select! {
@@ -109,7 +112,12 @@ impl Service {
                         ChangeEvent::TrackChange(track_change) => {
                             tracker.current_track_id = track_change.track.id.clone();
                             if let Some(track_id) = track_change.track.id {
+                                // If there's an interval running to request an update,
+                                // cancel it because it's no longer needed.
+                                interval.reset();
+
                                 let is_cached_liked = tracker.is_liked_cached(&track_id);
+
                                 self.send_and_wake(MonitorResponse {
                                     track:Some( Track { id: Some(track_id.clone()), artist: track_change.track.artist.clone(), title: track_change.track.title.clone(), album: track_change.track.album.clone() }),
                                     status: track_change.status.into(),
@@ -147,6 +155,7 @@ impl Service {
                             })?;
                         }
                         ChangeEvent::TrackLiked(is_liked) => {
+                            interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                             self.send_and_wake( MonitorResponse {
                                 track: None,
                                 status: if is_liked {TrackStatus::Added} else {TrackStatus::Removed}.into(),
@@ -154,6 +163,10 @@ impl Service {
                             })?;
                         }
                     }
+                }
+                _ = interval.tick() => {
+                    debug!("Interval has passed, updating!");
+                    update_requests_tx.send(()).context("Could not request update")?;
                 }
                 join_result = &mut dbus_handle => {
                     rpc_handle.abort();

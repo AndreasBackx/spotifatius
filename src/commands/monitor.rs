@@ -1,10 +1,6 @@
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
-use tokio::{
-    select,
-    sync::broadcast,
-    time::{self, Instant},
-};
+use tokio::{select, sync::broadcast};
 use tracing::debug;
 
 use anyhow::{Context, Result};
@@ -46,35 +42,23 @@ pub async fn run(opts: Monitor) -> Result<()> {
         config,
     };
 
-    let (update_requests_tx, _) = broadcast::channel::<()>(1);
     let (monitor_tx, mut monitor_rx) =
         broadcast::channel::<MonitorResponse>(100);
     let mut service = Service::new(monitor_tx).await?;
 
-    let service_update_requests_tx = update_requests_tx.clone();
-    let mut monitor_handle = tokio::spawn(async move {
-        service.monitor(service_update_requests_tx).await
-    });
+    let mut monitor_handle =
+        tokio::spawn(async move { service.monitor().await });
 
-    let mut interval = time::interval_at(
-        Instant::now() + Duration::from_secs(3600),
-        Duration::from_secs(3600),
-    );
     loop {
         select! {
             monitor_result = &mut monitor_handle => {
                 monitor_result??;
                 break;
             }
-            _ = interval.tick() => {
-                debug!("Interval has passed, updating!");
-                update_requests_tx.send(())?;
-            }
             Ok(response) = monitor_rx.recv() => {
                 debug!("{:#?}", response);
                 let status = TrackStatus::from_i32(response.status).context(format!("invalid status value '{}' passed", response.status))?;
                 let output = if let Some(track) = response.track {
-                    interval.reset();
 
                     let mut class = vec![];
                     let mut separator = "-";
@@ -97,14 +81,12 @@ pub async fn run(opts: Monitor) -> Result<()> {
                         class: Some(class),
                     }
                 } else if status == TrackStatus::Added {
-                    interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                     Output {
                         text: "Added to library!".to_string(),
                         tooltip: None,
                         class: Some(vec![status.into()]),
                     }
                 } else if status == TrackStatus::Removed {
-                    interval = time::interval_at(Instant::now() + Duration::from_secs(2), interval.period());
                     Output {
                         text: "Removed from library!".to_string(),
                         tooltip: None,

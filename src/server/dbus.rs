@@ -26,36 +26,37 @@ const SPOTIFY_DEST: &str = "org.mpris.MediaPlayer2.spotify";
 const SPOTIFY_PATH: &str = "/org/mpris/MediaPlayer2";
 
 pub struct DBusClient {
-    pub update_requests: Option<broadcast::Sender<()>>,
+    events_tx: mpsc::Sender<ChangeEvent>,
+    update_requests_tx: broadcast::Sender<()>,
 }
 
 impl DBusClient {
-    pub fn new() -> Self {
+    pub fn new(
+        events_tx: mpsc::Sender<ChangeEvent>,
+        update_requests_tx: broadcast::Sender<()>,
+    ) -> Self {
         DBusClient {
-            update_requests: None,
+            events_tx,
+            update_requests_tx,
         }
     }
 
     /// Listen for song changes, mirroring what you would see playing in Spotify.
-    pub async fn listen(
-        &mut self,
-        events: mpsc::Sender<ChangeEvent>,
-        update_requests_tx: broadcast::Sender<()>,
-    ) -> Result<()> {
+    pub async fn listen(&mut self) -> Result<()> {
         info!("Starting to listen on DBUS...");
-        let update_requests_rx = update_requests_tx.subscribe();
+        let update_requests_rx = self.update_requests_tx.subscribe();
         let (change_tx, mut change_rx) = mpsc::channel::<ChangeEvent>(10);
 
-        update_requests_tx.send(())?;
-        self.update_requests = Some(update_requests_tx.clone());
-        let upd = update_requests_tx;
+        self.update_requests_tx.send(())?;
 
-        let mut window_handle = tokio::spawn(
-            DBusClient::listen_spotify_window(change_tx.clone(), upd),
-        );
+        let mut window_handle =
+            tokio::spawn(DBusClient::listen_spotify_window(
+                change_tx.clone(),
+                self.update_requests_tx.clone(),
+            ));
 
         let mut change_handle = tokio::spawn(DBusClient::listen_song_changes(
-            events.clone(),
+            self.events_tx.clone(),
             BroadcastStream::new(update_requests_rx),
         ));
 
@@ -63,7 +64,7 @@ impl DBusClient {
             tokio_select! {
                 Some(change_event) = change_rx.recv() => {
                     debug!("change_event: {:#?}", change_event);
-                    events.send(change_event).await?;
+                    self.events_tx.send(change_event).await?;
                 }
                 join_result = &mut window_handle => {
                     change_handle.abort();
