@@ -99,11 +99,11 @@ Some example output:
 ```shell
 $ spotifatius monitor --output-type polybar
 # Output for playing unliked song.
-%{F#CECECE}Twenty One Pilots - Bounce Man{%F-}
+%{F#CECECE}Twenty One Pilots - Bounce Man%{F-}
 # Output for playing liked song.
-%{F#CECECE}Twenty One Pilots + Bounce Man{%F-}
+%{F#CECECE}Twenty One Pilots + Bounce Man%{F-}
 # Output for paused liked song.
-%{F#6E6E6E}Twenty One Pilots + Bounce Man{%F-}
+%{F#6E6E6E}Twenty One Pilots + Bounce Man%{F-}
 ```
 
 ## Server/Client via gRPC
