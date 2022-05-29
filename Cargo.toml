@@ -7,7 +7,7 @@ homepage = "https://github.com/AndreasBackx/spotifatius"
 keywords = ["spotify", "waybar", "polybar"]
 license = "MIT"
 name = "spotifatius"
-version = "0.2.2"
+version = "0.2.3"
 
 [dependencies]
 anyhow = "1.0.41"
