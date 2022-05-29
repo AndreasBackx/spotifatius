@@ -8,10 +8,14 @@ use anyhow::Result;
 
 use clap::Parser;
 use commands::{monitor, toggle_liked};
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .pretty()
+        .init();
     let root_opts = Opts::parse();
 
     match root_opts.subcmd {
