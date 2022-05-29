@@ -1,7 +1,9 @@
 use std::error::Error;
+
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
+
 use tokio::sync::Mutex;
 use tokio::sync::{
     broadcast,
@@ -106,7 +108,7 @@ impl Service {
         loop {
             tokio::select! {
                 Some(change_event) = self.change_rx.recv() => {
-                    debug!("{:#?}", change_event);
+                    debug!("Received {:#?}", change_event);
                     let mut tracker = self.liked_tracker.lock().await;
                     match change_event {
                         ChangeEvent::TrackChange(track_change) => {
@@ -114,7 +116,12 @@ impl Service {
                             if let Some(track_id) = track_change.track.id {
                                 // If there's an interval running to request an update,
                                 // cancel it because it's no longer needed.
-                                interval.reset();
+                                // Only if the current title/artist are not empty,
+                                // because when opening Spotify the title/artist
+                                // will be empty initially.
+                                if track_change.track.artist.is_some() && track_change.track.title.is_some() {
+                                    interval.reset();
+                                }
 
                                 let is_cached_liked = tracker.is_liked_cached(&track_id);
 
@@ -145,7 +152,13 @@ impl Service {
                                 })?;
                             };
                         }
-                        ChangeEvent::SpotifyOpened => {}
+                        ChangeEvent::SpotifyOpened => {
+                            // There is a bug where when Spotify opens, it will
+                            // not have an artist/title. Immedaitely asking for
+                            // an update will not work, but waiting ~0.2s will.
+                            // We'll use 0.5s just in case.
+                            interval = time::interval_at(Instant::now() + Duration::from_millis(500), interval.period());
+                        }
                         ChangeEvent::SpotifyClosed => {
                             tracker.current_track_id = None;
                             self.send_and_wake( MonitorResponse {

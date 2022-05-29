@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use futures::StreamExt;
+use futures::{future, StreamExt};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::BroadcastStream;
 
@@ -50,20 +50,17 @@ impl DBusClient {
         self.update_requests_tx.send(())?;
 
         let mut window_handle =
-            tokio::spawn(DBusClient::listen_spotify_window(
-                change_tx.clone(),
-                self.update_requests_tx.clone(),
-            ));
+            tokio::spawn(DBusClient::listen_spotify_window(change_tx.clone()));
 
         let mut change_handle = tokio::spawn(DBusClient::listen_song_changes(
-            self.events_tx.clone(),
+            change_tx.clone(),
             BroadcastStream::new(update_requests_rx),
         ));
 
         loop {
             tokio_select! {
                 Some(change_event) = change_rx.recv() => {
-                    debug!("change_event: {:#?}", change_event);
+                    debug!("Forwarding: {:#?}", change_event);
                     self.events_tx.send(change_event).await?;
                 }
                 join_result = &mut window_handle => {
@@ -108,6 +105,7 @@ impl DBusClient {
                 async move {
                     match signal.args().ok() {
                         Some(args) => {
+                            debug!("{args:#?}");
                             let changed_properties =
                                 args.changed_properties().clone().to_owned();
 
@@ -130,7 +128,7 @@ impl DBusClient {
         let player_interface_name =
             InterfaceName::try_from("org.mpris.MediaPlayer2.Player")?;
         let update_requests_stream = update_requests_rx.then(|_| {
-            debug!("Received an update request");
+            debug!("Received DBUS update request:");
             async {
                 (
                     props
@@ -146,13 +144,36 @@ impl DBusClient {
             }
         });
 
-        let mut merged_stream =
-            Box::pin(select(update_requests_stream, props_changed_stream));
+        let mut merged_stream = Box::pin(select(
+            update_requests_stream,
+            props_changed_stream,
+        ))
+        .scan(
+            (None, None),
+            |(last_playback_value, last_metadata_value),
+             (playback_value, metadata_value, is_update_request)| {
+                let item = (
+                    playback_value.or_else(|| (*last_playback_value).clone()),
+                    metadata_value.or_else(|| (*last_metadata_value).clone()),
+                    is_update_request,
+                );
+
+                *last_playback_value = item.0.clone();
+                *last_metadata_value = item.1.clone();
+
+                future::ready(Some(item))
+            },
+        );
 
         let mut last_song_change = None;
 
-        while let Some(item) = merged_stream.next().await {
-            let (playback_value, metadata_value, is_update_request) = item;
+        while let Some((playback_value, metadata_value, is_update_request)) =
+            merged_stream.next().await
+        {
+            debug!("Received DBUS update:");
+            debug!("playback_value: {playback_value:#?}");
+            debug!("metadata_value: {metadata_value:#?}");
+            debug!("is_update_request: {is_update_request:#?}");
 
             let status = playback_value
                 .map(|value: OwnedValue| -> Value { value.into() })
@@ -209,9 +230,11 @@ impl DBusClient {
                 })
                 .filter(|value| !value.is_empty())
                 .and_then(|value| {
-                    value
-                        .strip_prefix("spotify:track:")
-                        .map(|raw| raw.to_string())
+                    // There are 2 track ID formats. One of them being:
+                    // "/com/spotify/track/{TRACK_ID}", the other being
+                    // similar but with ":" instead of "/" and also
+                    // ending with "{TRACK_ID}" so we pick the last.
+                    value.split(&['/', ':']).last().map(|raw| raw.to_string())
                 });
 
             let song_change = TrackChange {
@@ -225,10 +248,12 @@ impl DBusClient {
             };
             if let Some(last) = last_song_change.clone() {
                 if !is_update_request && last == song_change {
+                    debug!("Skip sending track change as it was the same and not an update request");
                     continue;
                 }
             }
             last_song_change = Some(song_change.clone());
+            debug!("Sending: {song_change:#?}");
             events.send(ChangeEvent::TrackChange(song_change)).await?;
         }
 
@@ -238,7 +263,6 @@ impl DBusClient {
     /// Listen for when the Spotify window is opened or closed.
     async fn listen_spotify_window(
         events: mpsc::Sender<ChangeEvent>,
-        update_requests_tx: broadcast::Sender<()>,
     ) -> Result<()> {
         let connection = Connection::session().await?;
 
@@ -264,7 +288,6 @@ impl DBusClient {
                 == ""
             {
                 events.send(ChangeEvent::SpotifyClosed).await?;
-                update_requests_tx.send(())?;
             } else {
                 events.send(ChangeEvent::SpotifyOpened).await?;
             }

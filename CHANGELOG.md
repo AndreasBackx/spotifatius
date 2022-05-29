@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Logs are pretty now! 🌈
+- Spotify changed to only publish changes on the DBUS. So when going from paused to playing, it won't replay the track information. This change in behaviour is now supported.
+- Spotify changed the track ID format published on the DBUS, both the new and the old formats are now supported.
 
 ## [0.2.2] - 2022-04-29
 ### Changed
