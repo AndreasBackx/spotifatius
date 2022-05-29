@@ -11,19 +11,19 @@ version = "0.2.2"
 
 [dependencies]
 anyhow = "1.0.41"
-clap = {version = "3.1.12", features = ["derive"]}
+clap = {version = "3.1.18", features = ["derive"]}
 futures = {version = "0.3", default-features = false}
 # Don't use prost's `prost-derive` because it's unused.
-prost = {version = "0.10.1", default-features = false, features = ["std"]}
+prost = {version = "0.10.4", default-features = false, features = ["std"]}
 rspotify = {version = "0.11.0", features = [
   "cli", # enable requesting cli prompt for authentication
 ]}
 serde = "1.0"
 serde_json = "1.0"
-tokio = {version = "1.17.0", features = ["rt-multi-thread", "time", "sync"]}
+tokio = {version = "1.18.2", features = ["rt-multi-thread", "time", "sync"]}
 tokio-stream = {version = "0.1.8", features = ["sync"]}
 toml = "0.5.9"
-tonic = "0.7.1"
+tonic = "0.7.2"
 # Don't use tracing's `attributes` feature as it's unused.
 tracing = {version = "0.1.34", default-features = false, features = ["std"]}
 tracing-subscriber = {version = "0.3.11", features = ["env-filter"]}
