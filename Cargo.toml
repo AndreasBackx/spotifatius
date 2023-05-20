@@ -7,12 +7,13 @@ homepage = "https://github.com/AndreasBackx/spotifatius"
 keywords = ["spotify", "waybar", "polybar"]
 license = "MIT"
 name = "spotifatius"
-version = "0.2.3"
+version = "0.2.4"
 
 [dependencies]
 anyhow = "1.0.41"
 clap = {version = "3.1.18", features = ["derive"]}
 futures = {version = "0.3", default-features = false}
+html-escape = "0.2.13"
 # Don't use prost's `prost-derive` because it's unused.
 prost = {version = "0.10.4", default-features = false, features = ["std"]}
 rspotify = {version = "0.11.0", features = [

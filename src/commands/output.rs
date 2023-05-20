@@ -28,7 +28,11 @@ impl OutputFormatter {
     pub fn print(&self, output: Output) -> Result<()> {
         match self.output_type {
             OutputType::Waybar => {
-                let json = serde_json::to_string(&output)?;
+                let json = serde_json::to_string(&Output {
+                    text: html_escape::encode_text(&output.text.to_string())
+                        .into(),
+                    ..output
+                })?;
                 println!("{}", json);
             }
             OutputType::Polybar => {
