@@ -6,7 +6,12 @@ A simple Spotify CLI primarily made for monitoring what songs you're listening t
 
 ## Usage
 
-You likely want to add `spotifatius monitor` to your favourite bar, see [Bar Integration](#bar-integration). Though you want to run it once from your terminal to setup Spotify access tokens.
+First make sure the `RSPOTIFY_CLIENT_ID` and `RSPOTIFY_CLIENT_SECRET` environment
+variables are available in your shell environment. They need to contain the
+Spotify developer Client ID and secret. Follow [Spotify's Developer Documentation](https://developer.spotify.com/documentation/web-api/concepts/apps)
+on how to set that up, make sure the redirect URI is set to `http://localhost`.
+Once done, run `spotifatius monitor` once to setup Spotify access tokens:
+
 
 ```shell
 $ spotifatius monitor
@@ -16,7 +21,14 @@ Please enter the URL you were redirected to:
 {"text":"Twenty One Pilots - Bounce Man","tooltip":"Scaled And Icy","class":["playing"]}
 ```
 
-From then on, this step will no longer be required. To toggle the liked state anywhere, use `toggle-liked`.
+From then on, this step will no longer be required. You can then add
+`spotifatius monitor` to your favourite bar, see [Bar Integration](#bar-integration).
+The first invocation of this command will start a server that is required by
+other commands. If there is already a server running, it will mirror the output
+from said server, this is useful if you want the monitoring to show on
+multiple displays.
+
+To toggle the liked state anywhere, use `toggle-liked`.
 
 ```shell
 $ spotifatius toggle-liked
