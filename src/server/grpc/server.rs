@@ -2,10 +2,12 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::server::liked_tracker::LikedTracker;
+use crate::server::play_pause_tracker::PlayPauseTracker;
 
 use super::api::spotifatius_server::Spotifatius;
 use super::api::{
     MonitorRequest, MonitorResponse, ToggleLikedRequest, ToggleLikedResponse,
+    TogglePlayPauseRequest, TogglePlayPauseResponse,
 };
 use super::monitor_client::MonitorClient;
 use anyhow::Result;
@@ -22,6 +24,7 @@ type ResponseStream =
 
 pub struct MySpotifatius {
     liked_tracker: Arc<sync::Mutex<LikedTracker>>,
+    play_pause_tracker: Arc<sync::Mutex<PlayPauseTracker>>,
     monitor_tx: Sender<MonitorResponse>,
     wake_watcher: Arc<WakeWatcher>,
     update_requests_tx: broadcast::Sender<()>,
@@ -30,12 +33,14 @@ pub struct MySpotifatius {
 impl MySpotifatius {
     pub fn new(
         liked_tracker: Arc<sync::Mutex<LikedTracker>>,
+        play_pause_tracker: Arc<sync::Mutex<PlayPauseTracker>>,
         monitor_tx: Sender<MonitorResponse>,
         wake_watcher: Arc<WakeWatcher>,
         update_requests_tx: broadcast::Sender<()>,
     ) -> Self {
         MySpotifatius {
             liked_tracker,
+            play_pause_tracker,
             monitor_tx,
             wake_watcher,
             update_requests_tx,
@@ -74,5 +79,19 @@ impl Spotifatius for MySpotifatius {
             .await
             .map_err(|err| Status::internal(err.to_string()))?;
         Ok(Response::new(ToggleLikedResponse { is_liked }))
+    }
+
+    async fn toggle_play_pause(
+        &self,
+        _request: Request<TogglePlayPauseRequest>,
+    ) -> Result<Response<TogglePlayPauseResponse>, Status> {
+        self.play_pause_tracker
+            .lock()
+            .await
+            .toggle(None, false)
+            .await
+            .map_err(|err| Status::internal(err.to_string()))?;
+
+        Ok(Response::new(TogglePlayPauseResponse {}))
     }
 }

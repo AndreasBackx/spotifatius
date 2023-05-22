@@ -5,6 +5,7 @@ package spotifatius;
 service Spotifatius {
   rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
   rpc ToggleLiked(ToggleLikedRequest) returns (ToggleLikedResponse);
+  rpc TogglePlayPause(TogglePlayPauseRequest) returns (TogglePlayPauseResponse);
 }
 
 enum TrackStatus {
@@ -35,3 +36,7 @@ message MonitorResponse {
 message ToggleLikedRequest {}
 
 message ToggleLikedResponse { bool is_liked = 1; }
+
+message TogglePlayPauseRequest {}
+
+message TogglePlayPauseResponse {}

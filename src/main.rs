@@ -7,7 +7,7 @@ use crate::commands::opts::{Opts, SubCommand};
 use anyhow::Result;
 
 use clap::Parser;
-use commands::{monitor, toggle_liked};
+use commands::{monitor, toggle_liked, toggle_play_pause};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -21,5 +21,6 @@ async fn main() -> Result<()> {
     match root_opts.subcmd {
         SubCommand::Monitor(opts) => monitor::run(opts).await,
         SubCommand::ToggleLiked(opts) => toggle_liked::run(opts).await,
+        SubCommand::TogglePlayPause(opts) => toggle_play_pause::run(opts).await,
     }
 }

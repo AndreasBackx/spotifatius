@@ -1,14 +1,10 @@
-use std::{collections::HashMap, fs::create_dir_all, path::PathBuf};
-
 use anyhow::{Context, Result};
 use rspotify::{
-    clients::OAuthClient, model::TrackId, prelude::Id, scopes, AuthCodeSpotify,
-    Config, Credentials, OAuth, DEFAULT_CACHE_PATH,
+    clients::OAuthClient, model::TrackId, prelude::Id, AuthCodeSpotify,
 };
+use std::collections::HashMap;
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, info};
-
-use crate::shared::config::{resolve_home_path, DEFAULT_CONFIG_FOLDER};
 
 use super::grpc::api::ChangeEvent;
 
@@ -35,33 +31,10 @@ impl Tracks {
 }
 
 impl LikedTracker {
-    pub async fn new(change_tx: Sender<ChangeEvent>) -> Result<Self> {
-        let oauth = OAuth {
-            redirect_uri: "http://localhost".to_string(),
-            scopes: scopes!("user-library-read", "user-library-modify"),
-            ..Default::default()
-        };
-        let creds = Credentials::from_env().context(
-            "Could not find RSPOTIFY_CLIENT_(ID|SECRET) environment variables",
-        )?;
-        let cache_folder =
-            resolve_home_path(PathBuf::from(DEFAULT_CONFIG_FOLDER))?;
-        create_dir_all(cache_folder.clone()).with_context(|| {
-            format!("Could not create cache folder {cache_folder:?}")
-        })?;
-        let cache_path = cache_folder.join(DEFAULT_CACHE_PATH);
-        // error!("{cache_path}");
-        let config = Config {
-            token_cached: true,
-            token_refreshing: true,
-            cache_path,
-            ..Default::default()
-        };
-        let mut spotify = AuthCodeSpotify::with_config(creds, oauth, config);
-
-        let url = spotify.get_authorize_url(true)?;
-        spotify.prompt_for_token(&url).await?; // This is where it crashes.
-
+    pub async fn new(
+        change_tx: Sender<ChangeEvent>,
+        spotify: AuthCodeSpotify,
+    ) -> Result<Self> {
         Ok(LikedTracker {
             spotify,
             tracks: Tracks::default(),

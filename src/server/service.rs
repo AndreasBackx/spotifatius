@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use crate::shared::config::{resolve_home_path, DEFAULT_CONFIG_FOLDER};
+use std::{fs::create_dir_all, path::PathBuf};
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
@@ -28,12 +30,18 @@ use crate::server::{
 
 use super::grpc::api::ChangeEvent;
 use super::grpc::wake_watcher::WakeWatcher;
+use super::play_pause_tracker::PlayPauseTracker;
 
 use crate::shared::consts::ADDRESS;
+use rspotify::{
+    clients::OAuthClient, scopes, AuthCodeSpotify, Config, Credentials, OAuth,
+    DEFAULT_CACHE_PATH,
+};
 
 pub struct Service {
     monitor_tx: broadcast::Sender<MonitorResponse>,
     liked_tracker: Arc<Mutex<LikedTracker>>,
+    play_pause_tracker: Arc<Mutex<PlayPauseTracker>>,
     change_tx: mpsc::Sender<ChangeEvent>,
     change_rx: mpsc::Receiver<ChangeEvent>,
     wake_watcher: Arc<WakeWatcher>,
@@ -45,13 +53,44 @@ impl Service {
     ) -> Result<Self> {
         let (change_tx, change_rx) = mpsc::channel::<ChangeEvent>(100);
 
-        let liked_tracker =
-            Arc::new(Mutex::new(LikedTracker::new(change_tx.clone()).await?));
+        let oauth = OAuth {
+            redirect_uri: "http://localhost".to_string(),
+            scopes: scopes!("user-library-read", "user-library-modify"),
+            ..Default::default()
+        };
+        let creds = Credentials::from_env().context(
+            "Could not find RSPOTIFY_CLIENT_(ID|SECRET) environment variables",
+        )?;
+        let cache_folder =
+            resolve_home_path(PathBuf::from(DEFAULT_CONFIG_FOLDER))?;
+        create_dir_all(cache_folder.clone()).with_context(|| {
+            format!("Could not create cache folder {cache_folder:?}")
+        })?;
+        let cache_path = cache_folder.join(DEFAULT_CACHE_PATH);
+        // error!("{cache_path}");
+        let config = Config {
+            token_cached: true,
+            token_refreshing: true,
+            cache_path,
+            ..Default::default()
+        };
+        let mut spotify = AuthCodeSpotify::with_config(creds, oauth, config);
+
+        let url = spotify.get_authorize_url(true)?;
+        spotify.prompt_for_token(&url).await?; // This is where it crashes.
+
+        let liked_tracker = Arc::new(Mutex::new(
+            LikedTracker::new(change_tx.clone(), spotify.clone()).await?,
+        ));
         let wake_watcher = Arc::new(WakeWatcher::new());
+        let play_pause_tracker = Arc::new(Mutex::new(
+            PlayPauseTracker::new(change_tx.clone(), spotify.clone()).await?,
+        ));
 
         Ok(Service {
             monitor_tx,
             liked_tracker,
+            play_pause_tracker,
             change_tx,
             change_rx,
             wake_watcher,
@@ -84,6 +123,7 @@ impl Service {
         let change_tx = self.change_tx.clone();
         let rpc = MySpotifatius::new(
             self.liked_tracker.clone(),
+            self.play_pause_tracker.clone(),
             self.monitor_tx.clone(),
             self.wake_watcher.clone(),
             update_requests_tx.clone(),
