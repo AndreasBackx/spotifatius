@@ -7,7 +7,7 @@ use crate::server::play_pause_tracker::PlayPauseTracker;
 use super::api::spotifatius_server::Spotifatius;
 use super::api::{
     MonitorRequest, MonitorResponse, ToggleLikedRequest, ToggleLikedResponse,
-    TogglePlayPauseRequest, TogglePlayPauseResponse,
+    TogglePlayRequest, TogglePlayResponse,
 };
 use super::monitor_client::MonitorClient;
 use anyhow::Result;
@@ -81,10 +81,11 @@ impl Spotifatius for MySpotifatius {
         Ok(Response::new(ToggleLikedResponse { is_liked }))
     }
 
-    async fn toggle_play_pause(
+    async fn toggle_play(
         &self,
-        _request: Request<TogglePlayPauseRequest>,
-    ) -> Result<Response<TogglePlayPauseResponse>, Status> {
+        _request: Request<TogglePlayRequest>,
+    ) -> Result<Response<TogglePlayResponse>, Status> {
+        println!("MARKER 6");
         self.play_pause_tracker
             .lock()
             .await
@@ -92,6 +93,6 @@ impl Spotifatius for MySpotifatius {
             .await
             .map_err(|err| Status::internal(err.to_string()))?;
 
-        Ok(Response::new(TogglePlayPauseResponse {}))
+        Ok(Response::new(TogglePlayResponse {}))
     }
 }

@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use super::{
-    monitor::Monitor, toggle_liked::ToggleLiked,
-    toggle_play_pause::TogglePlayPause,
+    monitor::Monitor, toggle_liked::ToggleLiked, toggle_play::TogglePlay,
 };
 
 /// A simple Spotify CLI primarily made for monitoring what songs you're
@@ -18,5 +17,5 @@ pub struct Opts {
 pub enum SubCommand {
     Monitor(Monitor),
     ToggleLiked(ToggleLiked),
-    TogglePlayPause(TogglePlayPause),
+    TogglePlay(TogglePlay),
 }

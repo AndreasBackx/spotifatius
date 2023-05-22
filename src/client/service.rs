@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 
 use crate::server::grpc::api::{
     spotifatius_client::SpotifatiusClient, ToggleLikedRequest,
-    TogglePlayPauseRequest,
+    TogglePlayRequest,
 };
 use crate::shared::consts::ADDRESS;
 
@@ -26,12 +26,18 @@ impl Service {
         Ok(())
     }
 
-    pub async fn toggle_play_pause() -> Result<()> {
+    pub async fn toggle_play() -> Result<()> {
+        println!("MARKER 2");
         let mut client =
             SpotifatiusClient::connect(format!("http://{ADDRESS}")).await
             .context("Could not connect to monitor instance, make sure there is one running")?;
-        let request = tonic::Request::new(TogglePlayPauseRequest {});
-        client.toggle_play_pause(request).await?;
+        println!("MARKER 3 {:?}", client);
+        let request = tonic::Request::new(TogglePlayRequest {});
+        println!("MARKER 4 {:?}", request);
+        match client.toggle_play(request).await {
+            Ok(resp) => println!("MARKER 5 {:?}", resp),
+            Err(e) => println!("e: {:?}", e),
+        }
         Ok(())
     }
 }

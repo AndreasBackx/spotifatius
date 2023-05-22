@@ -7,10 +7,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::{Context, Result};
 
 use tokio::sync::Mutex;
-use tokio::sync::{
-    broadcast,
-    mpsc::{self},
-};
+use tokio::sync::{broadcast, mpsc};
 use tokio::time::Instant;
 use tokio::{self, time};
 use tokio_stream::StreamExt;
@@ -26,11 +23,11 @@ use crate::server::{
         Track, TrackStatus,
     },
     liked_tracker::LikedTracker,
+    play_pause_tracker::PlayPauseTracker,
 };
 
 use super::grpc::api::ChangeEvent;
 use super::grpc::wake_watcher::WakeWatcher;
-use super::play_pause_tracker::PlayPauseTracker;
 
 use crate::shared::consts::ADDRESS;
 use rspotify::{
