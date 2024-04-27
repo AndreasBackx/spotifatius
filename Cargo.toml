@@ -4,10 +4,10 @@ categories = ["command-line-utilities"]
 description = "A simple Spotify CLI primarily made for monitoring what songs you're listening to and displaying that in your bar of choice like waybar or polybar."
 edition = "2021"
 homepage = "https://github.com/AndreasBackx/spotifatius"
-keywords = ["spotify", "waybar", "polybar"]
+keywords = ["spotify", "waybar", "polybar", "cli"]
 license = "MIT"
 name = "spotifatius"
-version = "0.2.4"
+version = "0.2.5"
 
 [dependencies]
 anyhow = "1.0.82"
