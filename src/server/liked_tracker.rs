@@ -2,8 +2,8 @@ use std::{collections::HashMap, fs::create_dir_all, path::PathBuf};
 
 use anyhow::{Context, Result};
 use rspotify::{
-    clients::OAuthClient, model::TrackId, prelude::Id, scopes, AuthCodeSpotify,
-    Config, Credentials, OAuth, DEFAULT_CACHE_PATH,
+    clients::OAuthClient, model::TrackId, scopes, AuthCodeSpotify, Config,
+    Credentials, OAuth, DEFAULT_CACHE_PATH,
 };
 use tokio::sync::mpsc::Sender;
 use tracing::{debug, info};
@@ -57,7 +57,7 @@ impl LikedTracker {
             cache_path,
             ..Default::default()
         };
-        let mut spotify = AuthCodeSpotify::with_config(creds, oauth, config);
+        let spotify = AuthCodeSpotify::with_config(creds, oauth, config);
 
         let url = spotify.get_authorize_url(true)?;
         spotify.prompt_for_token(&url).await?; // This is where it crashes.
@@ -73,7 +73,7 @@ impl LikedTracker {
     pub async fn save(&mut self, track_id: String) -> Result<()> {
         self.spotify
             .current_user_saved_tracks_add(
-                [TrackId::from_id(&track_id)?].iter(),
+                [TrackId::from_id(&track_id)?].into_iter(),
             )
             .await?;
         self.tracks.add(track_id, true);
@@ -83,7 +83,7 @@ impl LikedTracker {
     pub async fn remove(&mut self, track_id: String) -> Result<()> {
         self.spotify
             .current_user_saved_tracks_delete(
-                [TrackId::from_id(&track_id)?].iter(),
+                [TrackId::from_id(&track_id)?].into_iter(),
             )
             .await?;
         self.tracks.add(track_id, false);
@@ -108,7 +108,7 @@ impl LikedTracker {
         let liked = self
             .spotify
             .current_user_saved_tracks_contains(
-                [TrackId::from_id(&track_id)?].iter(),
+                [TrackId::from_id(&track_id)?].into_iter(),
             )
             .await
             .map(|liked| liked[0])?;
