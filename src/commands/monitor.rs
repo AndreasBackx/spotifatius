@@ -69,7 +69,11 @@ pub async fn run(opts: Monitor) -> Result<()> {
                     class.push(status.into());
                     let text = match (track.artist, track.title) {
                         (Some(artist), Some(title)) => {
-                            format!("{} {} {}", artist, separator, title)
+                            match status {
+                                TrackStatus::Playing => format!(" {} {} {}", artist, separator, title),
+                                TrackStatus::Paused => format!(" {} {} {}", artist, separator, title),
+                                _ => format!("{} {} {}", artist, separator, title),
+                            }
                         }
                         (Some(artist), None) => artist,
                         (None, Some(title)) => title,
