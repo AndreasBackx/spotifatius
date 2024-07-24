@@ -7,10 +7,12 @@ use tracing::{debug, warn};
 pub const DEFAULT_CONFIG_FOLDER: &str = "~/.config/spotifatius";
 pub const DEFAULT_CONFIG_PATH: &str = "~/.config/spotifatius/config.toml";
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     #[serde(default = "default_polybar_config")]
     pub polybar: PolybarConfig,
+    #[serde(default = "default_format")]
+    pub format: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -22,6 +24,19 @@ pub struct PolybarConfig {
 fn default_polybar_config() -> PolybarConfig {
     PolybarConfig {
         colors: HashMap::new(),
+    }
+}
+
+fn default_format() -> String {
+    "{artist} {separator} {title}".to_string()
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            polybar: default_polybar_config(),
+            format: default_format(),
+        }
     }
 }
 
