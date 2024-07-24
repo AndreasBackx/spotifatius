@@ -11,6 +11,8 @@ pub const DEFAULT_CONFIG_PATH: &str = "~/.config/spotifatius/config.toml";
 pub struct Config {
     #[serde(default = "default_polybar_config")]
     pub polybar: PolybarConfig,
+    #[serde(default = "default_waybar_config")]
+    pub waybar: WaybarConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -22,6 +24,18 @@ pub struct PolybarConfig {
 fn default_polybar_config() -> PolybarConfig {
     PolybarConfig {
         colors: HashMap::new(),
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct WaybarConfig {
+    #[serde(default)]
+    pub icons: bool,
+}
+
+fn default_waybar_config() -> WaybarConfig {
+    WaybarConfig {
+        icons: false,
     }
 }
 

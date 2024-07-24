@@ -37,6 +37,7 @@ pub struct Monitor {
 
 pub async fn run(opts: Monitor) -> Result<()> {
     let config = get_config(opts.config)?;
+    let waybar_icons = config.waybar.icons;
     let formatter = OutputFormatter {
         output_type: opts.output_type,
         config,
@@ -69,10 +70,14 @@ pub async fn run(opts: Monitor) -> Result<()> {
                     class.push(status.into());
                     let text = match (track.artist, track.title) {
                         (Some(artist), Some(title)) => {
-                            match status {
-                                TrackStatus::Playing => format!(" {} {} {}", artist, separator, title),
-                                TrackStatus::Paused => format!(" {} {} {}", artist, separator, title),
-                                _ => format!("{} {} {}", artist, separator, title),
+                            if waybar_icons {
+                                match status {
+                                    TrackStatus::Playing => format!(" {} {} {}", artist, separator, title),
+                                    TrackStatus::Paused => format!(" {} {} {}", artist, separator, title),
+                                    _ => format!("{} {} {}", artist, separator, title), // unable to get player state
+                                }
+                            } else {
+                                format!("{} {} {}", artist, separator, title)
                             }
                         }
                         (Some(artist), None) => artist,
