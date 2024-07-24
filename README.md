@@ -54,8 +54,7 @@ Removed from library!
 {"text":"Twenty One Pilots - Bounce Man","tooltip":"Scaled And Icy","class":["playing"]}
 ```
 
-Liked songs also have a `+` instead of a `-` between the artist and song title.
-
+By default, liked songs also have a `+` instead of a `-` between the artist and song title.
 
 ## Bar Integration
 
@@ -91,6 +90,35 @@ exec = spotifatius monitor --output-type polybar
 tail = true
 click-right = spotifatius toggle-liked
 ```
+
+## config.toml options
+
+### format
+
+The JSON output can be formatted using the `format` var in config.toml:
+
+Example 1:
+```toml
+format = "{status} {title} {separator} {artist}" # {"text":"  Bounce Man + Twenty One Pilots","tooltip":"Scaled And Icy","class":["liked", "playing"]}
+```
+
+Example 2:
+```toml
+format = "{artist} -- {title}" # {"text":"Twenty One Pilots -- Bounce Man","tooltip":"Scaled And Icy","class":["liked", "playing"]}
+```
+
+Default format is `{artist} {separator} {title}`
+
+Available options:
+| Name        | Function |
+| ---         | --- |
+| {status}    | Unicode symbol for playing/paused track |
+| {title}     | Current track title |
+| {artist}    | Current track artist |
+| {separator} | + if current track is a liked song, - if not |
+
+
+### polybar
 
 Polybar maps the classes from the [waybar](#waybar) output to colors that you can define in your config file `~/.config/spotifatius/config.toml`:
 
