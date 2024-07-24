@@ -82,6 +82,15 @@ The following classes are supported:
 * `added`: there's a message being displayed saying the song was just added to your liked songs.
 * `removed`: there's a message being displayed saying the song was just removed to your liked songs.
 
+Playing/paused status icons are supported and can be enabled in the config file at `~/.config/spotifatius/config.toml`:
+
+```toml
+[waybar]
+icons = true
+```
+
+_These icons are disabled by default_
+
 ### Polybar
 
 ```ini
