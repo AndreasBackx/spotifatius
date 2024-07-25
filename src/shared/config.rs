@@ -7,7 +7,7 @@ use tracing::{debug, warn};
 pub const DEFAULT_CONFIG_FOLDER: &str = "~/.config/spotifatius";
 pub const DEFAULT_CONFIG_PATH: &str = "~/.config/spotifatius/config.toml";
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Default)]
 pub struct Config {
     #[serde(default = "default_polybar_config")]
     pub polybar: PolybarConfig,
@@ -29,15 +29,6 @@ fn default_polybar_config() -> PolybarConfig {
 
 fn default_format() -> String {
     "{artist} {separator} {title}".to_string()
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            polybar: default_polybar_config(),
-            format: default_format(),
-        }
-    }
 }
 
 pub fn resolve_home_path(path: PathBuf) -> Result<PathBuf> {
@@ -73,8 +64,8 @@ pub fn get_config(config_path: PathBuf) -> Result<Config> {
                 .with_context(|| format!("could not parse {}", path.display()))
         }
         Err(err) => {
-            warn!("{err}");
-            Ok(Config::default())
+            warn!("{err}: Using default config");
+            Ok(toml::from_str::<Config>("")?)
         }
     }
 }
