@@ -28,6 +28,7 @@ pub struct OutputFormatter {
 
 impl OutputFormatter {
     pub fn format_output(&self, response: MonitorResponse, status: TrackStatus, output_format: &str) -> Output {
+        let text_template = &self.config.text_template;
         if let Some(track) = response.track {
             let mut class = vec![];
             let mut separator = "-";
@@ -39,15 +40,20 @@ impl OutputFormatter {
             let text = match (track.artist, track.title) {
                 (Some(artist), Some(title)) => {
                     let status_icon = match status {
-                        TrackStatus::Playing => " ",
-                        TrackStatus::Paused => " ",
+                        TrackStatus::Playing => &text_template.playing,
+                        TrackStatus::Paused => &text_template.paused,
                         _ => "" // unable to get player state
+                    };
+                    let liked_icon = match class.contains(&"liked".to_string()) {
+                        true => &text_template.liked,
+                        _ => "" // not liked, so display no icon
                     };
                     output_format
                         .replace("{artist}", &artist)
                         .replace("{title}", &title)
                         .replace("{separator}", separator)
                         .replace("{status}", status_icon)
+                        .replace("{liked}", liked_icon)
                 }
                 (Some(artist), None) => artist,
                 (None, Some(title)) => title,

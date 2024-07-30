@@ -13,6 +13,8 @@ pub struct Config {
     pub polybar: PolybarConfig,
     #[serde(default = "default_format")]
     pub format: String,
+	#[serde(default)]
+    pub text_template: TemplateConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -29,6 +31,28 @@ fn default_polybar_config() -> PolybarConfig {
 
 fn default_format() -> String {
     "{artist} {separator} {title}".to_string()
+}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct TemplateConfig {
+    #[serde(default = "default_playing_text")]
+	pub playing: String,
+    #[serde(default = "default_paused_text")]
+	pub paused: String,
+    #[serde(default = "default_liked_text")]
+    pub liked: String,
+}
+
+fn default_playing_text() -> String {
+    " ".to_string()
+}
+
+fn default_paused_text() -> String {
+    " ".to_string()
+}
+
+fn default_liked_text() -> String {
+    " ".to_string()
 }
 
 pub fn resolve_home_path(path: PathBuf) -> Result<PathBuf> {
