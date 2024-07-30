@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 use crate::{
-    commands::output::{Output, OutputType},
+    commands::output::OutputType,
     server::grpc::api::{MonitorResponse, TrackStatus},
     server::service::Service,
     shared::config::{get_config, DEFAULT_CONFIG_PATH},
@@ -59,56 +59,7 @@ pub async fn run(opts: Monitor) -> Result<()> {
             Ok(response) = monitor_rx.recv() => {
                 debug!("{:#?}", response);
                 let status = TrackStatus::from_i32(response.status).context(format!("invalid status value '{}' passed", response.status))?;
-                let output = if let Some(track) = response.track {
-
-                    let mut class = vec![];
-                    let mut separator = "-";
-                    if response.is_liked.unwrap_or_default() {
-                        class.push("liked".to_string());
-                        separator = "+";
-                    }
-                    class.push(status.into());
-                    let text = match (track.artist, track.title) {
-                        (Some(artist), Some(title)) => {
-                            let status_icon = match status {
-                                TrackStatus::Playing => " ",
-                                TrackStatus::Paused => " ",
-                                _ => "" // unable to get player state
-                            };
-                            output_format
-                                .replace("{artist}", &artist)
-                                .replace("{title}", &title)
-                                .replace("{separator}", separator)
-                                .replace("{status}", status_icon)
-                        }
-                        (Some(artist), None) => artist,
-                        (None, Some(title)) => title,
-                        (None, None) => "".to_string(),
-                    };
-                    Output {
-                        text,
-                        tooltip: track.album,
-                        class: Some(class),
-                    }
-                } else if status == TrackStatus::Added {
-                    Output {
-                        text: "Added to library!".to_string(),
-                        tooltip: None,
-                        class: Some(vec![status.into()]),
-                    }
-                } else if status == TrackStatus::Removed {
-                    Output {
-                        text: "Removed from library!".to_string(),
-                        tooltip: None,
-                        class: Some(vec![status.into()]),
-                    }
-                } else {
-                    Output {
-                        text: "".to_string(),
-                        tooltip: None,
-                        class: None,
-                    }
-                };
+                let output = formatter.format_output(response, status, &output_format);
                 formatter.print(output)?;
             }
         }
