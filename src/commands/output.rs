@@ -51,6 +51,7 @@ impl OutputFormatter {
                     output_format
                         .replace("{artist}", &artist)
                         .replace("{title}", &title)
+                        .replace("{album}", track.album.as_ref().unwrap())
                         .replace("{separator}", separator)
                         .replace("{status}", status_icon)
                         .replace("{liked}", liked_icon)
