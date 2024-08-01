@@ -32,7 +32,8 @@ impl OutputFormatter {
         if let Some(track) = response.track {
             let mut class = vec![];
             let mut separator = "-";
-            if response.is_liked.unwrap_or_default() {
+            let is_liked = response.is_liked.unwrap_or_default();
+            if is_liked {
                 class.push("liked".to_string());
                 separator = "+";
             }
@@ -44,9 +45,11 @@ impl OutputFormatter {
                         TrackStatus::Paused => &text_template.paused,
                         _ => "" // unable to get player state
                     };
-                    let liked_icon = match class.contains(&"liked".to_string()) {
-                        true => &text_template.liked,
-                        _ => "" // not liked, so display no icon
+                    let liked_icon = if is_liked {
+                    	&text_template.liked
+                    } else {
+                    	"" // Display no icon if not liked
+                    }
                     };
                     output_format
                         .replace("{artist}", &artist)
