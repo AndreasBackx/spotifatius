@@ -95,6 +95,8 @@ click-right = spotifatius toggle-liked
 
 ### format
 
+🗒 **Note:** These formatting options are not yet final and might change in upcoming versions. They won't be considered breaking changes as a result, though a minor version bump will be done if this changes. [More info.](https://github.com/AndreasBackx/spotifatius/pull/8)
+
 The JSON output can be formatted using the `format` var in config.toml:
 
 Example 1:
