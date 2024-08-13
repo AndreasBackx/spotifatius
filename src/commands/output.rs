@@ -49,7 +49,6 @@ impl OutputFormatter {
                     	&text_template.liked
                     } else {
                     	"" // Display no icon if not liked
-                    }
                     };
                     output_format
                         .replace("{artist}", &artist)
