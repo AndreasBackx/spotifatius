@@ -37,7 +37,7 @@ impl Tracks {
 impl LikedTracker {
     pub async fn new(change_tx: Sender<ChangeEvent>) -> Result<Self> {
         let oauth = OAuth {
-            redirect_uri: "http://localhost".to_string(),
+            redirect_uri: "https://127.0.0.1:8000".to_string(),
             scopes: scopes!("user-library-read", "user-library-modify"),
             ..Default::default()
         };
