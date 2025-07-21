@@ -6,7 +6,7 @@ use rspotify::{
     Credentials, OAuth, DEFAULT_CACHE_PATH,
 };
 use tokio::sync::mpsc::Sender;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::shared::config::{resolve_home_path, DEFAULT_CONFIG_FOLDER};
 
@@ -37,10 +37,11 @@ impl Tracks {
 impl LikedTracker {
     pub async fn new(change_tx: Sender<ChangeEvent>) -> Result<Self> {
         let oauth = OAuth {
-            redirect_uri: "http://localhost".to_string(),
+            redirect_uri: "http://127.0.0.1:8000".to_string(),
             scopes: scopes!("user-library-read", "user-library-modify"),
             ..Default::default()
         };
+        warn!("If you see a redirect error, please edit your Spotify app to allow the redirect URI: http://127.0.0.1:8000. This was changed in 0.3.0. See https://github.com/AndreasBackx/spotifatius/pull/9.");
         let creds = Credentials::from_env().context(
             "Could not find RSPOTIFY_CLIENT_(ID|SECRET) environment variables",
         )?;
