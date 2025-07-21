@@ -9,7 +9,7 @@ A simple Spotify CLI primarily made for monitoring what songs you're listening t
 First make sure the `RSPOTIFY_CLIENT_ID` and `RSPOTIFY_CLIENT_SECRET` environment
 variables are available in your shell environment. They need to contain the
 Spotify developer Client ID and secret. Follow [Spotify's Developer Documentation](https://developer.spotify.com/documentation/web-api/concepts/apps)
-on how to set that up, make sure the redirect URI is set to `https://127.0.0.1:8000`.
+on how to set that up, make sure the redirect URI is set to `http://127.0.0.1:8000`.
 Once done, run `spotifatius monitor` once to setup Spotify access tokens:
 
 
